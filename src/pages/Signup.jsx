@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
-
+import { supabase } from '../supabase';
 const { FiMail, FiLock, FiUser, FiEye, FiEyeOff } = FiIcons;
 
 const Signup = () => {
@@ -30,25 +30,38 @@ const Signup = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError(language === 'ar' ? 'كلمة المرور غير متطابقة' : 'Passwords do not match');
-      setLoading(false);
-      return;
+  if (formData.password !== formData.confirmPassword) {
+    setError(language === 'ar' ? 'كلمة المرور غير متطابقة' : 'Passwords do not match');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          name: formData.name,
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
     }
 
-    try {
-      await signup(formData.email, formData.password, formData.name);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(language === 'ar' ? 'خطأ في إنشاء الحساب' : 'Error creating account');
-    } finally {
-      setLoading(false);
-    }
-  };
+    navigate('/dashboard');
+  } catch (err) {
+    setError(language === 'ar' ? 'خطأ في إنشاء الحساب' : 'Error creating account');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
