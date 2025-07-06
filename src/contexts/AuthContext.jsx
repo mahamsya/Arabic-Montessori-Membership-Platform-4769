@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 
 const AuthContext = createContext();
 
@@ -15,47 +16,48 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading user from localStorage or API
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const session = supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+      }
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
-    // Simulate login
-    const mockUser = {
-      id: '1',
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      name: 'أم سارة',
-      membership: 'vip',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b332c2a2?w=150&h=150&fit=crop&crop=face'
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    return mockUser;
+      password,
+    });
+    if (error) throw error;
+    return data.user;
   };
 
   const signup = async (email, password, name) => {
-    // Simulate signup
-    const mockUser = {
-      id: '1',
+    const { data, error } = await supabase.auth.signUp({
       email,
-      name,
-      membership: 'basic',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b332c2a2?w=150&h=150&fit=crop&crop=face'
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    return mockUser;
+      password,
+      options: {
+        data: {
+          name,
+        },
+      },
+    });
+    if (error) throw error;
+    return data.user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('user');
   };
 
   const value = {
@@ -66,9 +68,5 @@ export const AuthProvider = ({ children }) => {
     loading,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
