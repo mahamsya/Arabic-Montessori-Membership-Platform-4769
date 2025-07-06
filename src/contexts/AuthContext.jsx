@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../supabase';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabase'; // تأكدي إن المسار صحيح
 
 const AuthContext = createContext();
 
@@ -16,17 +16,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
+    const session = supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
     });
 
     return () => {
-      listener?.subscription?.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
@@ -45,7 +45,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) throw error;
     return data.user;
   };
@@ -55,9 +54,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, signup, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    signup,
+    login,
+    logout,
+    loading,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
