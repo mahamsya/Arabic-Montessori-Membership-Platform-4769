@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
+import { supabase } from '../supabase';
 
 const { FiMail, FiLock, FiEye, FiEyeOff } = FiIcons;
 
 const Login = () => {
   const { language } = useLanguage();
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -33,7 +32,15 @@ const Login = () => {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       navigate('/dashboard');
     } catch (err) {
       setError(language === 'ar' ? 'خطأ في البيانات' : 'Invalid credentials');
@@ -60,7 +67,9 @@ const Login = () => {
             {language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
           </h2>
           <p className="text-gray-600">
-            {language === 'ar' ? 'ادخلي لحسابك للوصول لجميع المواد التعليمية' : 'Sign in to your account to access all educational materials'}
+            {language === 'ar'
+              ? 'ادخلي لحسابك للوصول لجميع المواد التعليمية'
+              : 'Sign in to your account to access all educational materials'}
           </p>
         </motion.div>
 
@@ -122,9 +131,9 @@ const Login = () => {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  <SafeIcon 
-                    icon={showPassword ? FiEyeOff : FiEye} 
-                    className="w-5 h-5 text-gray-400 hover:text-gray-600" 
+                  <SafeIcon
+                    icon={showPassword ? FiEyeOff : FiEye}
+                    className="w-5 h-5 text-gray-400 hover:text-gray-600"
                   />
                 </button>
               </div>
@@ -159,9 +168,7 @@ const Login = () => {
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                language === 'ar' ? 'تسجيل الدخول' : 'Sign In'
-              )}
+              ) : language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
             </button>
           </div>
 
